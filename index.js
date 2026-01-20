@@ -22,8 +22,12 @@ function layout(title, body) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f19">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <title>${title}</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -127,20 +131,19 @@ app.get("/", async (req, res) => {
   <div class="container">
     <h3>Followers (${followers.length})</h3>
     <div class="followers">
-      ${
-        followers.length === 0
-          ? "<p>No followers yet.</p>"
-          : followers
-              .map(
-                (u) => `
+      ${followers.length === 0
+      ? "<p>No followers yet.</p>"
+      : followers
+        .map(
+          (u) => `
                 <div class="follower">
                   <strong>${u.name}</strong>
                   <span>${u.email}</span>
                 </div>
               `
-              )
-              .join("")
-      }
+        )
+        .join("")
+    }
     </div>
   </div>
 </section>
