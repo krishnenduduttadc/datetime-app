@@ -1,166 +1,171 @@
 require("dotenv").config();
 
 const express = require("express");
+const path = require("path");
 const { Pool } = require("pg");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// PostgreSQL connection
+// Static files (CSS, JS)
+app.use(express.static(path.join(__dirname, "public")));
+
+// PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
 // Helper: HTML layout
-function renderPage(title, content) {
+function layout(title, body) {
   return `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${title}</title>
-    <style>
-      :root {
-        --primary: #2563eb;
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --text: #0f172a;
-        --muted: #64748b;
-      }
-
-      * {
-        box-sizing: border-box;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .card {
-        background: var(--card);
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        width: 100%;
-        max-width: 520px;
-        text-align: center;
-      }
-
-      h1 {
-        margin-top: 0;
-        font-size: 1.8rem;
-      }
-
-      .time {
-        font-size: 1.2rem;
-        margin: 1rem 0;
-        color: var(--primary);
-        font-weight: 600;
-      }
-
-      .buttons {
-        margin-top: 1.5rem;
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-
-      a.button {
-        text-decoration: none;
-        padding: 0.6rem 1.2rem;
-        border-radius: 8px;
-        border: 1px solid var(--primary);
-        color: white;
-        background: var(--primary);
-        font-weight: 500;
-        transition: all 0.2s ease;
-      }
-
-      a.button.secondary {
-        background: transparent;
-        color: var(--primary);
-      }
-
-      a.button:hover {
-        transform: translateY(-1px);
-        opacity: 0.9;
-      }
-
-      footer {
-        margin-top: 1.5rem;
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-
-      code {
-        background: #eef2ff;
-        padding: 0.2rem 0.4rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      ${content}
-      <footer>
-        © ${new Date().getFullYear()} krishinfo.xyz · Powered by Node & PostgreSQL
-      </footer>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${title}</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Krishnendu's Portfolio</h1>
+      <nav>
+        <a href="#about">About</a>
+        <a href="#skills">Skills</a>
+        <a href="#projects">Projects</a>
+        <a href="#followers">Followers</a>
+        <a href="#contact">Contact</a>
+      </nav>
     </div>
-  </body>
-  </html>
-  `;
+  </header>
+
+  ${body}
+
+  <footer>
+    © ${new Date().getFullYear()} krishinfo.xyz · Built with Node.js & PostgreSQL
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>
+`;
 }
 
-// Home page
-app.get("/", (req, res) => {
-  const now = new Date();
+// Home / Portfolio page
+app.get("/", async (req, res) => {
+  let followers = [];
 
-  const content = `
-    <h1>Welcome to my page</h1>
-    <p>Current server date & time</p>
-    <div class="time">${now.toLocaleString()}</div>
+  try {
+    const { rows } = await pool.query(
+      "SELECT name, email FROM users ORDER BY id DESC"
+    );
+    followers = rows;
+  } catch (err) {
+    console.error(err);
+  }
 
-    <div class="buttons">
-      <a class="button" href="/api/users">View Users API</a>
-      <a class="button secondary" href="/health">Health Check</a>
+  const body = `
+<section class="hero">
+  <div class="container">
+    <img src="/profile.png" alt="Profile Image" class="profile-img" />
+    <h2>Hi, I'm Krishnendu 👋</h2>
+    <p>Backend Developer Spring Boot · Node.js · PostgreSQL</p>
+    <p>Building modern backend systems & APIs that scale</p>
+    <a class="btn" href="#contact">Hire Me</a>
+  </div>
+</section>
+
+
+<section id="about" class="section">
+  <div class="container">
+    <h3>About Me</h3>
+    <p class="about-text">
+      I am a results-driven software engineer with a primary focus on building enterprise-grade applications within the Java ecosystem, specifically specializing in Spring Boot. My technical versatility extends to the JavaScript landscape, where I leverage Node.js and Express.js to develop scalable and high-performance backend services. By grounding my development in a strong command of Data Structures and Algorithms (DSA) and a deep understanding of System Design, I architect modular, resilient systems that are optimized for both efficiency and high-traffic business requirements. I am proficient in managing relational data through PostgreSQL and ensuring seamless service communication via robust REST APIs. To ensure these solutions are production-ready, I bridge the gap between development and operations by utilizing Docker for containerization, Kubernetes for orchestration, and AWS or Render for reliable cloud hosting. Whether I am working on large-scale enterprise integrations or innovative projects, I am committed to delivering clean, maintainable code and exceptional user experiences.
+    </p>
+  </div>
+</section>
+
+<section id="skills" class="section alt">
+  <div class="container">
+    <h3>Skills</h3>
+    <ul class="skills">
+      <li>Spring Boot</li>
+      <li>DSA in Java</li>
+      <li>System Design</li>
+      <li>Node.js</li>
+      <li>Express.js</li>
+      <li>PostgreSQL</li>
+      <li>REST APIs</li>
+      <li>Docker</li>
+      <li>Kubernetes</li>
+      <li>Machine Learning</li>
+      <li>AWS / Cloud Services</li>
+      <li>Render / Cloud Hosting</li>
+    </ul>
+  </div>
+</section>
+
+<section id="projects" class="section">
+  <div class="container">
+    <h3>Projects</h3>
+    <div class="projects">
+      <div class="card">
+        <h4>Portfolio Website</h4>
+        <p>Server-rendered portfolio with PostgreSQL integration.</p>
+      </div>
+      <div class="card">
+        <h4>REST API Service</h4>
+        <p>Secure API with authentication and database integration.</p>
+      </div>
     </div>
-  `;
+  </div>
+</section>
 
-  res.send(renderPage("KrishInfo | Date & Time", content));
+<section id="followers" class="section alt">
+  <div class="container">
+    <h3>Followers (${followers.length})</h3>
+    <div class="followers">
+      ${
+        followers.length === 0
+          ? "<p>No followers yet.</p>"
+          : followers
+              .map(
+                (u) => `
+                <div class="follower">
+                  <strong>${u.name}</strong>
+                  <span>${u.email}</span>
+                </div>
+              `
+              )
+              .join("")
+      }
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="section">
+  <div class="container">
+    <h3>Contact</h3>
+    <p>Email: <a href="mailto:krishnenduduttadc@gmail.com">krish@example.com</a></p>
+    <p>Website: https://krishinfo.xyz</p>
+  </div>
+</section>
+`;
+
+  res.send(layout("Krish | Portfolio", body));
 });
 
-// REST API: users
+// API (still available)
 app.get("/api/users", async (req, res) => {
   try {
     const { rows } = await pool.query(
       "SELECT id, name, email FROM users ORDER BY id"
     );
     res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Database error" });
-  }
-});
-
-// Health check
-app.get("/health", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
-    res.json({ status: "OK", database: "connected" });
   } catch {
-    res.status(500).json({ status: "ERROR", database: "disconnected" });
+    res.status(500).json({ error: "Database error" });
   }
 });
 
